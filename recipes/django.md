@@ -81,6 +81,9 @@ From the original suite's daily agent use:
 6. **Multiple settings modules.** The toolset is generated against ONE settings module; record it in `ctx.toml` `[project].entrypoint_hint`. Settings-dependent wiring (middleware, installed apps) may differ in prod — say so in `ctx settings` output.
 7. **Monorepos.** Multiple `manage.py` = multiple toolsets (one `.ctx/` per Django app) or one umbrella with `--app` scoping. Ask the user (skill Phase 0).
 8. **GenericForeignKey.** No real FK edge; `related_objects` won't show it. Detect `GenericForeignKey` fields explicitly and render them as dashed edges in relationship output.
+9. **The project's pre-commit gate will lint `.ctx/`.** Django shops often run `ruff check .` in hooks/CI — the generated tools are in scope. Run the project's ruff config over `.ctx/` and fix before installing (observed: 16 violations blocked a commit on first dogfood — E501, UP038, E741).
+10. **Stray system Pythons defeat naive venv detection.** A Homebrew Python with a global django made `import django` succeed outside the venv, then `ModuleNotFoundError: control_plane`. Require the project's full dependency set (e.g. django + DRF + one project-specific package) before trusting the interpreter; otherwise re-exec through `poetry run` (guard against re-exec loops with an env flag).
+11. **No PyYAML in many lockfiles.** Write `golden.yaml` in JSON syntax (JSON is valid YAML) and parse with stdlib `json` — note the choice in the file header.
 
 ## 6. Golden questions to include (adversarial set)
 

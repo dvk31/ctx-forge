@@ -61,6 +61,7 @@ Wait for approval if the plan involves booting the framework or the project is l
 3. Write each command honoring the output rules (§3 of the contract): anchored, dense, `--json` / `--locate` / `--help`, deterministic, stderr for diagnostics. The contract's budget (~150 lines / ~6 KB default) is a feature, not a constraint — design the *default* view for an agent that needs orientation, and flags for depth.
 4. Generate `guides/` last: dense markdown references built *by* your tools (e.g. `ctx schema --json` -> `guides/schema.md`). Guides are regenerable artifacts; never hand-author facts into them.
 5. Keep each tool small and readable. The user will review this code; it is part of their repo.
+6. **Pass the host project's own quality gates.** If the project has a linter/formatter config (ruff, eslint, black...), run it over `.ctx/` and fix everything before Phase 4 — generated tools are committed source and will be swept up by the project's pre-commit hooks and CI exactly like hand-written code.
 
 ## Phase 4 — Verify (the gate)
 
