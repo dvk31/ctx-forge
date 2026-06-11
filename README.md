@@ -10,6 +10,10 @@
 
 <p align="center"><strong>skill, not a binary · project-native tools · self-verified · CLI + MCP · pairs with Headroom</strong></p>
 
+<p align="center">
+  <img src="assets/hero.png" alt="Raw exploration: ~30 tool calls, ~40,000 tokens of noise. ctx-forge: 1 tool call, ~100 tokens, file:line anchored." width="820">
+</p>
+
 ---
 
 ctx-forge is a meta-tool: an agent skill that teaches your coding agent (Cursor, Claude Code, Codex, ...) to **generate a context toolset specific to your project** — then prove it works before installing it.
