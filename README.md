@@ -117,6 +117,16 @@ Headroom itself endorses this layering — it bundles RTK and supports pluggable
 headroom wrap claude             # every session
 ```
 
+## Proven on a real codebase
+
+The skill was run end-to-end on a production Django 6 control-plane app (20 apps, **140 models**, a 4,000-line gateway view module, DRF + Inertia):
+
+- Generated a 7-command toolset (`map`, `find`, `schema`, `api`, `flow`, `impact`, plus a project-specific `services` command that surfaces every `@service_contract`'s billing/risk/effects metadata) — ~1,100 lines of stdlib-only Python, full rebuild + selftest in ~3s.
+- **19/19 golden questions passed**, ground truth derived independently of the tools per [`verify/PROTOCOL.md`](verify/PROTOCOL.md), including adversarial cases: inherited fields anchored to their abstract base, abstract models correctly absent, DRF router routes that appear in no source file.
+- **The verification gate caught a real "confident liar."** The first `flow` implementation scanned the whole view *module* and confidently attributed every service call in a 4k-line file to one route — six plausible, wrong hops. The golden question failed, the bug was fixed (AST scoped to the view node), and a `not_contains` matcher now pins it forever. This is the entire point of the verify phase: a tool that lies convincingly is worse than no tool.
+
+The same run surfaced three lessons now codified in the skill and Django recipe: generated tools must pass the host repo's own linter (16 ruff violations blocked a commit), `import django` is not proof you're in the project venv, and `golden.yaml` should use JSON syntax when PyYAML isn't in the lockfile.
+
 ## Quickstart
 
 > Status: early. The spec and skill are being built in the open; interfaces below are the target surface.
@@ -148,13 +158,15 @@ ctx-forge distills a production-proven internal suite: 30+ `show_*_flow` / `ask_
 
 ## Status & roadmap
 
-- [ ] Tool contract spec
-- [ ] Core skill (generic 3-tier methodology)
-- [ ] Verification harness
-- [ ] MCP server template
-- [ ] Django recipe
-- [ ] Headroom integration (`HEADROOM_CONTEXT_TOOL=ctx-forge`)
-- [ ] Example: end-to-end generated toolset on a sample project
+- [x] Tool contract spec
+- [x] Core skill (generic 3-tier methodology)
+- [x] Verification harness (golden-question protocol)
+- [x] MCP server template (built + smoke-tested)
+- [x] Django recipe
+- [x] Headroom integration module (`HEADROOM_CONTEXT_TOOL=ctx-forge`)
+- [x] Proven end-to-end on a real Django 6 app (19/19 golden questions)
+- [ ] Upstream the Headroom PR
+- [ ] Ship a committed `examples/` generated toolset
 - [ ] More recipes: Next.js, Rails, FastAPI, Go
 
 ## License
