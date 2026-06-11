@@ -127,6 +127,36 @@ The skill was run end-to-end on a production Django 6 control-plane app (20 apps
 
 The same run surfaced three lessons now codified in the skill and Django recipe: generated tools must pass the host repo's own linter (16 ruff violations blocked a commit), `import django` is not proof you're in the project venv, and `golden.yaml` should use JSON syntax when PyYAML isn't in the lockfile.
 
+## Benchmarks
+
+Same five navigation questions, same codebase (the Django 6 platform above), measured: ctx answer size vs. the bytes raw exploration pulls into an agent's context. Tokens approximated at 4 bytes/token.
+
+| Question | ctx | raw exploration | reduction |
+|---|--:|--:|--:|
+| Where does wallet logic live? | 44 tok | 3.5k tok (grep fan-out: 175 hits) | 98.8% |
+| Full model shape + relations | 150 tok | 4.3k tok (model file + base-class file) | 96.5% |
+| Which services are metered/high-risk? | 41 tok | 9.7k tok (whole services.py) | 99.6% |
+| Blast radius of editing services.py | 108 tok | 3.2k tok (import grep, unfiltered) | 96.6% |
+| Trace route -> view -> service -> contract | 106 tok | 158k tok (urls + 4k-line views + services) | 99.9% |
+
+Every ctx answer: **1 tool call, ~50 ms warm, every fact `file:line`-anchored.** Raw exploration for the same answers is typically 4-8 tool calls each, plus the round-trip latency and the manual cross-file correlation the trace question requires.
+
+Methodology notes, honestly stated: the "raw" baselines assume whole-file reads, which is common naive agent behavior; a careful agent using ranged reads lands somewhere in between — but it still has to *find* the ranges, which is itself a grep + read cycle. The trace row's 158k assumes reading all three files; no ranged read can answer it without first locating the route, the view class, and the service definition. These are navigation-question benchmarks on one real repo, not end-to-end task benchmarks. Reproduce: any generated toolset, `wc -c` on both paths.
+
+And the part a generic compressor cannot replicate at any ratio: the metered/high-risk answer (`risk=high billing=metered requires=idempotency_checked effects=receipt_emitted`) is **project governance metadata** surfaced from the `@service_contract` convention — information an agent reading raw code wouldn't know to look for.
+
+## Compared to
+
+| | Scope | Project-aware | Verified | Stack |
+|---|---|:-:|:-:|---|
+| **ctx-forge** | generated navigation tools: schema, routes, flows, impact, project conventions | yes — generated per repo, incl. runtime introspection | yes — golden questions, selftest, staleness hash | any (recipes accelerate) |
+| [tokenmax-mcp](https://github.com/justinjamesmathew/tokenmax-mcp) | static symbol-level codemap | partial — symbols, not conventions | no | TS/JS only |
+| Aider repo-map / IDE semantic search | static ranking of relevant files/symbols | partial | no | any |
+| [RTK](https://github.com/rtk-ai/rtk) / [lean-ctx](https://github.com/yvgude/lean-ctx) | rewrite/teach efficient CLI usage | no — generic | no | any |
+| [Headroom](https://github.com/chopratejas/headroom) | compress everything in transit; reversible | no — content-type heuristics | n/a | any |
+
+ctx-forge is the only one in this list that (a) knows your project's *conventions* (service contracts, base classes, registries) because it introspects the running framework, and (b) refuses to install a tool it cannot prove correct. It is also the only one that requires a generation step — that is the trade.
+
 ## Quickstart
 
 > Status: early. The spec and skill are being built in the open; interfaces below are the target surface.
