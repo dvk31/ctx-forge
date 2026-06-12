@@ -185,7 +185,8 @@ ctx-forge/
 │   ├── tool-contract.md  # the standard surface every generated toolset must expose
 │   └── ctx-toml.md       # manifest format: stack, generators, staleness hash
 ├── recipes/
-│   └── django.md         # framework playbooks (accelerators, not requirements)
+│   ├── django.md         # framework playbooks (accelerators, not requirements)
+│   └── typescript.md     # TS/Node: compiler-API seams, barrel/alias pitfalls
 ├── mcp-template/         # thin MCP server wrapping the generated ctx CLI
 ├── verify/               # golden-question protocol + selftest harness
 ├── headroom/             # HEADROOM_CONTEXT_TOOL integration
@@ -206,6 +207,7 @@ ctx-forge distills a production-proven internal suite: 30+ `show_*_flow` / `ask_
 - [x] Headroom integration module (`HEADROOM_CONTEXT_TOOL=ctx-forge`)
 - [x] Proven end-to-end on a real Django 6 app (19/19 golden questions)
 - [x] Second toolset in the same monorepo (tenant runtime, stack-specific `jobs`/`events`, 25/25)
+- [x] TypeScript/Node recipe (v0.1 draft — first generated toolset pending)
 - [ ] Upstream the Headroom PR
 - [ ] Ship a committed `examples/` generated toolset
 - [ ] More recipes: Next.js, Rails, FastAPI, Go
