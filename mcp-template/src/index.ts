@@ -27,7 +27,24 @@ interface CommandEntry {
 interface CtxManifest {
   ctx?: { contract_version?: string };
   commands?: Record<string, CommandEntry>;
+  // Legacy location: pre-0.1 state-file toolsets kept selftest results here.
   verify?: { last_selftest_result?: string };
+}
+
+interface CtxState {
+  last_selftest_result?: string;
+}
+
+/** Volatile run state lives in the gitignored cache/state.json
+ * (ctx-toml.md "Volatile state"); absent = never regenerated here. */
+function loadState(repoRoot: string): CtxState | null {
+  try {
+    return JSON.parse(
+      readFileSync(join(repoRoot, ".ctx", "cache", "state.json"), "utf8")
+    ) as CtxState;
+  } catch {
+    return null;
+  }
 }
 
 function findRepoRoot(): string {
@@ -158,11 +175,20 @@ async function main(): Promise<void> {
   }
 
   // Selftest health is worth a warning at startup, not a hard failure:
-  // agents should know the toolset is currently untrusted.
-  if (manifest.verify?.last_selftest_result === "fail") {
+  // agents should know the toolset is currently untrusted. State lives in
+  // cache/state.json; the manifest [verify] field is the legacy fallback.
+  const state = loadState(repoRoot);
+  const selftestResult =
+    state?.last_selftest_result ?? manifest.verify?.last_selftest_result;
+  if (selftestResult === "fail") {
     console.error(
       "ctx-forge-mcp: WARNING — last selftest FAILED; toolset is untrusted. " +
         "Prefer raw exploration and run `ctx regen`."
+    );
+  } else if (state === null) {
+    console.error(
+      "ctx-forge-mcp: note — no recorded run state (fresh checkout?); " +
+        "commands will report stale until `ctx regen` runs once."
     );
   }
 
