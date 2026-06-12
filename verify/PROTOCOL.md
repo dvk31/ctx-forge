@@ -12,6 +12,11 @@ Ground truth for a golden question MUST be established **without using the tool 
 
 This is the whole trick. The generating agent is both toolsmith and auditor, so the audit must not depend on the work being audited. A golden question whose expected answer was produced by the tool itself is worthless and MUST NOT be recorded.
 
+The protocol catches failures in **both directions**, and field use has produced one of each:
+
+- **Tool bug**: a `flow` implementation scanned a whole 4,000-line view module instead of the single view node and attributed every service call to one route. The golden question failed; the fix is pinned forever by a `not_contains` matcher.
+- **Question bug**: a question asserting `contains_line: "activate"` silently passed against output containing `/deactivate/` — the *question* was the liar. Treat golden questions as code: when one is found to over- or under-match, fix the matcher and record the post-mortem in its `derived_from` so the lesson travels with the question.
+
 ## 2. golden.yaml format
 
 ```yaml
@@ -111,6 +116,8 @@ Quality mix — for each command, aim for:
 **At generation (Phase 4 of the skill):** derive ground truth -> write questions -> run selftest -> one fix-and-retry cycle per failing command -> drop what still fails (`dropped: true` here, `[dropped]` in `ctx.toml`).
 
 **At regen:** `ctx regen` rebuilds indexes, then re-runs selftest automatically. Questions referencing code that no longer exists are reported as `STALE-QUESTION` (distinct from `FAIL`): the regen flow re-derives them from `derived_from` or deletes them with the user's consent. A regen ending in failures restores the previous state or marks `last_selftest_result = "fail"` — never silently keeps broken tools.
+
+This cycle is routine, not exceptional. Observed live: one upstream merge landed under a generated toolset -> staleness hash tripped (exit 2) -> `regen` rebuilt indexes -> three golden anchors had rotted (a view module shifted ~38 lines; the app count changed) -> each was re-derived from its `derived_from` recipe -> selftest green. Total cost: minutes. The `derived_from` field is what makes re-derivation mechanical instead of archaeological — write it for your future self.
 
 **Retry of dropped commands:** each regen MAY retry `dropped` questions; a command that passes gets reinstated (move out of `[dropped]`, flip `dropped: false`).
 

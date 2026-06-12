@@ -131,6 +131,12 @@ The skill was run end-to-end on a production Django 6 control-plane app (20 apps
 
 The same run surfaced three lessons now codified in the skill and Django recipe: generated tools must pass the host repo's own linter (16 ruff violations blocked a commit), `import django` is not proof you're in the project venv, and `golden.yaml` should use JSON syntax when PyYAML isn't in the lockfile.
 
+The skill has since been run on a **second app in the same monorepo** (the tenant runtime: Django 6, job workers, a local event bus) — 9 commands including two stack-specific ones (`jobs`: job kind -> worker handler -> enqueue sites; `events`: event bus publishers -> subscribers), **25/25 golden questions**. That second wave hardened the recipe further:
+
+- Exercising the toolset against a real implementation plan (not just goldens) exposed `impact` missing `from pkg import module` and relative imports — it reported 0 importers for a module with 6 — and `find` lacking a `symbol` kind, returning a same-named wrong symbol for a class-method query. Both fixed, both now pinned by golden questions and recipe pitfalls 12–13.
+- The verification protocol caught a failure in *each* direction across the two runs: a tool bug on the first (the `flow` module-scope liar) and a question bug on the second (a `contains_line: "activate"` matcher satisfied by `/deactivate/`).
+- A live staleness cycle ran end-to-end in the wild: an upstream merge tripped the hash (exit 2), regen surfaced three rotted anchors, each was re-derived from its `derived_from` in minutes.
+
 ## Benchmarks
 
 Same five navigation questions, same codebase (the Django 6 platform above), measured: ctx answer size vs. the bytes raw exploration pulls into an agent's context. Tokens approximated at 4 bytes/token.
@@ -199,6 +205,7 @@ ctx-forge distills a production-proven internal suite: 30+ `show_*_flow` / `ask_
 - [x] Django recipe
 - [x] Headroom integration module (`HEADROOM_CONTEXT_TOOL=ctx-forge`)
 - [x] Proven end-to-end on a real Django 6 app (19/19 golden questions)
+- [x] Second toolset in the same monorepo (tenant runtime, stack-specific `jobs`/`events`, 25/25)
 - [ ] Upstream the Headroom PR
 - [ ] Ship a committed `examples/` generated toolset
 - [ ] More recipes: Next.js, Rails, FastAPI, Go
