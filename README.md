@@ -210,6 +210,7 @@ ctx-forge distills a production-proven internal suite: 30+ `show_*_flow` / `ask_
 - [x] Proven end-to-end on a real Django 6 app (19/19 golden questions)
 - [x] Second toolset in the same monorepo (tenant runtime, stack-specific `jobs`/`events`, 25/25)
 - [x] TypeScript/Node recipe (validated: 5-package pnpm workspace, 8 commands, 20/20 first regen)
+- [ ] Move volatile `[verify]` stamps out of the tracked manifest (selftest currently dirties `ctx.toml` in every fresh checkout; observed across all three toolsets once they landed on main)
 - [ ] Upstream the Headroom PR
 - [ ] Ship a committed `examples/` generated toolset
 - [ ] More recipes: Next.js, Rails, FastAPI, Go
