@@ -2,7 +2,21 @@
 
 Version: `0.1` (pre-release; breaking changes allowed until `1.0`)
 
-`.ctx/ctx.toml` is the single source of truth about a generated toolset: what was detected, what was generated, what it reads, and whether it is currently trustworthy. It is written by the generator, updated by `ctx regen` and `ctx selftest`, and read by agents, the MCP server, and the verification harness.
+`.ctx/ctx.toml` is the single source of truth about a generated toolset: what was detected, what was generated, and what it reads. It is written by the generator and read by agents, the MCP server, and the verification harness.
+
+The manifest is **deliberately static between generations**: `ctx regen` and `ctx selftest` write their volatile results (surface hash, timestamps, pass/fail) to the gitignored state file `cache/state.json`, never to the manifest. This keeps the committed tree byte-stable no matter how often the tools run — early toolsets wrote stamps into the tracked manifest, and every selftest dirtied every contributor's checkout.
+
+## Volatile state: `cache/state.json`
+
+Written by `ctx regen` and `ctx selftest`; absent in a fresh checkout (caches are gitignored), which all commands MUST treat as stale/untrusted until one `ctx regen` runs.
+
+| Key | Writer | Notes |
+|-----|--------|-------|
+| `surface_hash` | `ctx regen` | `sha256:` over the surface (see `[surface]`); compared on every invocation. |
+| `regenerated_at` | `ctx regen` | RFC 3339. |
+| `last_selftest` | `ctx selftest` | RFC 3339. |
+| `last_selftest_result` | `ctx selftest` | `pass` / `fail`. `fail` marks the toolset untrusted: agents SHOULD fall back to raw exploration and run `ctx regen`. |
+| `questions` | `ctx selftest` | Number of non-dropped golden questions executed. |
 
 ## Full example
 
@@ -31,7 +45,7 @@ globs = [
   "config/settings/**",
 ]
 exclude = ["**/migrations/**", "**/node_modules/**", ".ctx/**"]
-hash = "sha256:9f2c4a..."       # updated by `ctx regen`
+# The computed hash lives in cache/state.json (volatile, gitignored) — not here.
 
 [commands.map]
 tier = 0
@@ -68,9 +82,7 @@ guides = ["guides/architecture.md", "guides/schema.md", "guides/api.md"]
 
 [verify]
 golden = "golden.yaml"
-last_selftest = "2026-06-11T19:06:02Z"
-last_selftest_result = "pass"      # pass | fail | never
-questions = 14
+# selftest results live in cache/state.json (volatile, gitignored) — not here.
 
 [dropped]
 # Commands the generator attempted but could not verify. Kept for honesty
@@ -94,7 +106,7 @@ triggers = [
 |-----|------|-------|
 | `contract_version` | string | Must match a published `tool-contract.md` version. |
 | `conformance` | string | `core`, `standard`, or `full`. `ctx selftest` enforces it. |
-| `generated_at` | RFC 3339 string | Set at generation, updated by `ctx regen`. |
+| `generated_at` | RFC 3339 string | Set at generation only (provenance). Regen timestamps live in `cache/state.json`. |
 | `generated_by` | string | Skill version + model that generated the toolset. Provenance, not vanity: it tells a future agent how much to trust and whether a newer skill should regenerate. |
 
 ### `[project]` (required)
@@ -103,7 +115,7 @@ Detected facts about the host project. `frameworks` entries SHOULD carry a versi
 
 ### `[surface]` (required)
 
-Defines staleness. `globs` and `exclude` MUST cover every file any generator reads; if a generator reads it, it is part of the surface. `hash` is `sha256:` over the sorted list of `(relative_path, sha256(content))` pairs of matching files — cheap to recompute, order-independent, line-ending-normalized (`\n`).
+Defines staleness. `globs` and `exclude` MUST cover every file any generator reads; if a generator reads it, it is part of the surface. The computed hash — `sha256:` over the sorted list of `(relative_path, sha256(content))` pairs of matching files, order-independent, line-ending-normalized (`\n`) — is recorded in `cache/state.json` by `ctx regen` and compared on every invocation.
 
 ### `[commands.<name>]` (one per installed command, required)
 
@@ -122,7 +134,7 @@ Defines staleness. `globs` and `exclude` MUST cover every file any generator rea
 
 ### `[verify]` (required)
 
-Updated by every `ctx selftest` run. `last_selftest_result = "fail"` marks the toolset untrusted: agents SHOULD fall back to raw exploration and run `ctx regen`.
+Points at the golden-question file. Selftest results are volatile and live in `cache/state.json` (see above), not in the manifest.
 
 ### `[dropped]` (optional)
 
@@ -137,5 +149,5 @@ Commands the generator tried and could not verify, with the reason. Honesty sect
 1. No secrets, ever — only env var names.
 2. Every file a generator reads is covered by `[surface]` globs.
 3. Every installed command appears in `[commands]`; every `[commands]` entry has a working `source`.
-4. `ctx selftest` is the only writer of `[verify]`; `ctx regen` is the only writer of `[surface].hash`.
-5. The manifest is committed to the host repo; agents may read it directly instead of shelling out (`ctx help` and `ctx.toml` always agree because the former is generated from the latter).
+4. Nothing writes the manifest after generation: `ctx regen` and `ctx selftest` write only `cache/state.json`. A toolset whose routine runs dirty the committed tree is non-conformant.
+5. The manifest is committed to the host repo; agents may read it directly instead of shelling out (`ctx help` and `ctx.toml` always agree because the former is generated from the latter). Trust/staleness questions are answered by `cache/state.json`.

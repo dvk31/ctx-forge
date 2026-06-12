@@ -89,12 +89,12 @@ These rules are what make generated tools agent-efficient. They apply to every c
 
 ## 5. Staleness
 
-`ctx.toml` records a content hash over the **introspected surface** — the set of files/globs each generator declares as its inputs (e.g. `**/models.py`, `**/urls.py` for a Django schema/api generator). On every invocation, commands MUST cheaply compare the current surface hash against the recorded one:
+`ctx.toml` declares the **introspected surface** — the set of files/globs each generator declares as its inputs (e.g. `**/models.py`, `**/urls.py` for a Django schema/api generator); the computed content hash is recorded in the gitignored `cache/state.json` by `ctx regen` (see `ctx-toml.md` — volatile state never lands in the committed manifest). On every invocation, commands MUST cheaply compare the current surface hash against the recorded one (a missing state file counts as stale):
 
 - Match -> answer normally.
 - Mismatch -> answer if possible, warn on stderr, exit 2. Agents treat exit 2 as "run `ctx regen`".
 
-`ctx regen` MUST update the hash, rebuild indexes and guides, and then run `ctx selftest` automatically. A regen whose selftest fails MUST restore the previous state (or clearly mark the toolset broken in `ctx.toml`) — never leave silently-wrong tools installed.
+`ctx regen` MUST update the recorded hash, rebuild indexes and guides, and then run `ctx selftest` automatically. A regen whose selftest fails MUST restore the previous state (or clearly mark the toolset broken in `cache/state.json`) — never leave silently-wrong tools installed.
 
 ## 6. Verification
 

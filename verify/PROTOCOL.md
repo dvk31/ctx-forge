@@ -108,7 +108,7 @@ Quality mix — for each command, aim for:
 1. Run every non-`dropped` question: execute `command` + `args`, apply all matchers.
 2. Report per-question: `PASS` / `FAIL` with, on failure, the matcher that failed and a short diff (expected vs. relevant slice of actual).
 3. Exit 0 if all pass; exit 3 if any fail. Never exit 0 with failures.
-4. Update `[verify]` in `ctx.toml`: `last_selftest`, `last_selftest_result`, `questions`.
+4. Record `last_selftest`, `last_selftest_result`, and `questions` in the gitignored `cache/state.json` — never in the committed manifest (see `spec/ctx-toml.md`, "Volatile state").
 5. Verify conformance: every `[commands]` entry meets its coverage minimum; the declared conformance level's required commands exist. Shortfalls are failures.
 6. Be deterministic and offline: no network, no LLM calls. (`ctx ask` is exempt from golden questions for this reason; verify it only by checking it fails gracefully without its API key.)
 
