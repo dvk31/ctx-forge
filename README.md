@@ -137,6 +137,8 @@ The skill has since been run on a **second app in the same monorepo** (the tenan
 - The verification protocol caught a failure in *each* direction across the two runs: a tool bug on the first (the `flow` module-scope liar) and a question bug on the second (a `contains_line: "activate"` matcher satisfied by `/deactivate/`).
 - A live staleness cycle ran end-to-end in the wild: an upstream merge tripped the hash (exit 2), regen surfaced three rotted anchors, each was re-derived from its `derived_from` in minutes.
 
+A **third toolset — and the first non-Django one** — validated the TypeScript recipe: an umbrella over a five-package pnpm workspace (CLI, zod schema compiler, MCP server, two auth SDKs), written as plain Node ESM against the workspace's own pinned compiler. 20/20 golden questions on the first regen, with the adversarial set doing its job by design: barrel re-exports anchored to defining files via `getAliasedSymbol`, a same-name dispatch look-alike pinned out by `not_contains`, and zod validators surfaced as the runtime-validated data layer. The run also falsified one pre-validation recipe claim — `ts.resolveModuleName` follows `package.json` `exports` into `dist/` build output, so workspace import edges must map through the workspace name map instead — now corrected in the recipe.
+
 ## Benchmarks
 
 Same five navigation questions, same codebase (the Django 6 platform above), measured: ctx answer size vs. the bytes raw exploration pulls into an agent's context. Tokens approximated at 4 bytes/token.
@@ -207,7 +209,7 @@ ctx-forge distills a production-proven internal suite: 30+ `show_*_flow` / `ask_
 - [x] Headroom integration module (`HEADROOM_CONTEXT_TOOL=ctx-forge`)
 - [x] Proven end-to-end on a real Django 6 app (19/19 golden questions)
 - [x] Second toolset in the same monorepo (tenant runtime, stack-specific `jobs`/`events`, 25/25)
-- [x] TypeScript/Node recipe (v0.1 draft — first generated toolset pending)
+- [x] TypeScript/Node recipe (validated: 5-package pnpm workspace, 8 commands, 20/20 first regen)
 - [ ] Upstream the Headroom PR
 - [ ] Ship a committed `examples/` generated toolset
 - [ ] More recipes: Next.js, Rails, FastAPI, Go
