@@ -71,6 +71,7 @@ Field rules:
 | `derived_from` | yes | One line: how ground truth was established. Auditable honesty, and a recipe for re-derivation when the question goes stale. |
 | `expect` | yes | One or more matchers (§3). ALL must pass. |
 | `dropped` | no | `true` = belongs to a dropped command; skipped by selftest, retried by regen. |
+| `expect_exit` | no | Pin a nonzero exit code for commands whose failure report *is* the answer (e.g. `check-anchors` run against a fixture with a known-bad citation). Default: exit 0 expected (the stale-but-answered exit 2 is also accepted). |
 
 ## 3. Matchers
 

@@ -56,6 +56,7 @@ A toolset SHOULD implement these via the framework's own reflection when a frame
 | Command | Purpose |
 |---------|---------|
 | `ctx ask <question>` | LLM-backed Q&A over `guides/` + indexes. MUST degrade gracefully (clear error, exit 1) when no API key is configured. |
+| `ctx check-anchors <file.md>` | Verify every `path:line` / `path:line-range` citation in a markdown file (plan, doc, handoff) against the current tree. Per citation: `OK` / `MISSING-FILE` / `OUT-OF-RANGE` / `AMBIGUOUS`; exit 0 only when all citations hold, exit 1 otherwise. Citations are often written loosely — resolution SHOULD try the project root, configured source roots, and the markdown file's own directory/ancestors before a unique-suffix match over the tree. Golden questions SHOULD use small committed self-referential fixtures (e.g. `.ctx/fixtures/anchors-sample.md`) so ground truth needs no external files. |
 | Stack-specific commands | e.g. `ctx signals`, `ctx tasks`, `ctx middleware` for a Django project. Free-form, but MUST follow the output rules below and MUST be listed in `ctx help` and `ctx.toml`. |
 
 ### 2.4 Naming

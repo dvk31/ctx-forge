@@ -44,6 +44,7 @@ Rules:
 | `ctx settings` | `django.conf.settings` | Effective values for project-defined keys only (diff against `global_settings`), env-var provenance where derivable. NEVER print values of keys matching secret patterns (`KEY`, `SECRET`, `TOKEN`, `PASSWORD`, `DSN`) — print the env var name instead. |
 | `ctx jobs` | DB-backed job registry (non-Celery) | Projects with a homegrown job table + polling worker (a common Celery alternative): map each job kind -> the worker handler that consumes it -> every enqueue call site, all anchored. This is a cross-layer sweep grep can't do in one pass — the kind constant, the handler dispatch, and the enqueue sites live in different apps. |
 | `ctx events` | in-process/local event bus | Projects with a local event bus (publish/subscribe inside the process): map event types -> publishers -> subscribers/consumers with anchors. Same rationale as `jobs`: registration is often dynamic or convention-based, invisible to a single grep. |
+| `ctx check-anchors` | markdown citation scan (contract §2.3) | Pure stdlib (`re` + file reads), no Django boot. Worth generating early in any repo where agents write plans citing `file:line` — anchors rot fast (observed: one merge rotted 3 golden anchors). Selftest it against committed self-referential fixtures under `.ctx/fixtures/`. |
 
 ## 3. Surface globs (starting point)
 
