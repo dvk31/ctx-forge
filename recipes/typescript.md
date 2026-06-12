@@ -81,6 +81,7 @@ Same conventions that earned their keep in the Django suite: `--find` on every l
 10. **Monorepos multiply everything.** One `.ctx/` per package vs one umbrella at the workspace root with `--pkg` scoping is a Phase 0 user question. Umbrella wins when packages are small and cross-import heavily (the audit's `deps` graph tells you); per-package wins when teams own packages separately.
 11. **The project's linter will lint `.ctx/` — and hooks may skip what CI checks.** eslint/biome configs usually scope `**/*` and CI runs whole-tree; a staged-paths pre-commit hook can pass while CI fails. Lint `.ctx/` with the project's own config after every tool edit (generalized from the Django recipe's pitfall 9, observed twice).
 12. **The compiler version belongs to the project.** Import `typescript` from the project's `node_modules`, never a global. A version-mismatched compiler parses new syntax wrong silently — record the version in `ctx.toml` `[project]` and re-check at regen.
+13. **Packages that embed template/example projects ship data, not source.** CLIs and scaffolders often carry whole starter apps as assets (`assets/templates/<app>/` with their own package.jsons and `src/`). Those files import from the *template's* dependency universe, not the host package's — a tree-walking graph builder attributes them to the host and invents cross-package edges. Observed in field use (reported through a generated toolset's MCP server): 48% of an import graph was template data, and `deps` flagged two `[UNDECLARED]` edges for packages the host never imports; scratch dirs (`.tmp-*/src/*.ts`) leaked in the same way. The fix is structural, not a per-package prune list: walkers MUST derive their file sets from the declared `[surface]` globs (ctx-toml.md invariant 2) — an independent tree walk both invents answers and dodges the staleness hash, since out-of-surface files never trip exit-2. Golden-question it with `not_contains` on a phantom edge.
 
 ## 6. Golden questions to include (adversarial set)
 
@@ -90,6 +91,7 @@ Same conventions that earned their keep in the Django suite: `--find` on every l
 - An `import type`-only consumer — present in `impact` output, marked type-only.
 - A zod schema with a `.refine`/`.transform` — `schema` shows the validator, not just the inferred type.
 - `not_contains`: any symbol anchored into `dist/` or a `.d.ts`.
+- A cross-package edge that exists only inside embedded template/example assets — `deps` must not report it and `impact` must not list the asset files as importers (`not_contains` both; pitfall 13).
 
 ## 7. What not to build (v1)
 

@@ -147,7 +147,7 @@ Commands the generator tried and could not verify, with the reason. Honesty sect
 ## Invariants
 
 1. No secrets, ever — only env var names.
-2. Every file a generator reads is covered by `[surface]` globs.
+2. Every file a generator reads is covered by `[surface]` globs. Generators MUST derive their file sets from `[surface]` (includes and excludes), never from independent tree walks — a walker that reads outside the surface answers from files the staleness hash ignores, so its output drifts without ever tripping exit-2.
 3. Every installed command appears in `[commands]`; every `[commands]` entry has a working `source`.
 4. Nothing writes the manifest after generation: `ctx regen` and `ctx selftest` write only `cache/state.json`. A toolset whose routine runs dirty the committed tree is non-conformant.
 5. The manifest is committed to the host repo; agents may read it directly instead of shelling out (`ctx help` and `ctx.toml` always agree because the former is generated from the latter). Trust/staleness questions are answered by `cache/state.json`.
