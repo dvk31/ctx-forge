@@ -56,5 +56,5 @@ ctx-forge reduces the *need* for context (project-specific, verified navigation 
 ## Status
 
 - [x] Detection/guidance module (`ctx_forge_setup.py`, tested standalone)
-- [ ] Fork + PR against `chopratejas/headroom` with the wrap.py diff and tests
+- [x] Fork + PR against `chopratejas/headroom` with the wrap.py diff and tests — [chopratejas/headroom#939](https://github.com/chopratejas/headroom/pull/939) (branch `feat/ctx-forge-context-tool` on the `dvk31/headroom` fork; 20 new tests mirroring the lean-ctx suite, ruff clean, README + configuration docs updated)
 - [ ] Upstream review

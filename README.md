@@ -211,7 +211,7 @@ ctx-forge distills a production-proven internal suite: 30+ `show_*_flow` / `ask_
 - [x] Second toolset in the same monorepo (tenant runtime, stack-specific `jobs`/`events`, 25/25)
 - [x] TypeScript/Node recipe (validated: 5-package pnpm workspace, 8 commands, 20/20 first regen)
 - [x] Volatile state (`surface hash`, selftest stamps) moved out of the tracked manifest into gitignored `cache/state.json` — routine `regen`/`selftest` runs no longer dirty the host checkout
-- [ ] Upstream the Headroom PR
+- [ ] Upstream the Headroom PR — opened: [chopratejas/headroom#939](https://github.com/chopratejas/headroom/pull/939), in review
 - [ ] Ship a committed `examples/` generated toolset
 - [ ] More recipes: Next.js, Rails, FastAPI, Go
 
