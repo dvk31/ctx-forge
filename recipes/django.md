@@ -62,7 +62,7 @@ globs = [
 exclude = ["**/migrations/**", "**/tests/**", ".ctx/**", "**/__pycache__/**"]
 ```
 
-Adjust to the project's actual layout during the audit (some projects put services in `domain/`, `core/`, etc. — follow the imports, not the convention).
+Adjust to the project's actual layout during the audit (some projects put services in `domain/`, `core/`, etc. — follow the imports, not the convention). Then close the loop against ctx-toml.md invariant 2: the *final* surface must cover every file any generated walker reads — deep app code such as `management/commands/`, and tests whenever `impact` reports tests-in-radius (deliberate radius means tests belong in `globs`, not `exclude`; pitfall 15).
 
 ## 4. Output patterns that earned their keep
 
@@ -90,6 +90,7 @@ From the original suite's daily agent use:
 12. **`impact` silently misses module-as-name and relative imports.** `from apps.billing import services as billing_services` and `from . import services` are *module* imports that a naive AST visitor (handling only `import x.y` and `from x.y import symbol`) never resolves. Observed: `impact` confidently reported **0 importers for a module with 6** — a confident liar that passed its original goldens because none exercised these forms. Resolve `from pkg import name` by checking whether `pkg/name.py` (or `pkg/name/__init__.py`) exists on the surface, honor `as` aliases, and resolve relative-import levels against the importing file's package. Golden-question both forms (`contains_line` on a known alias-import site).
 13. **`find` needs a `symbol` kind — and same-name collisions return confident wrong answers.** An index covering only models/routes/views/services/settings missed plain helper functions and class methods entirely; worse, a query for a method name returned a *different, same-named symbol* from another module as if it were the answer. Index every top-level `def`/`class` and every class method as `ClassName.method`, and show the qualified name in output so collisions are visible to the caller.
 14. **Out-of-tree anchors leak machine paths.** Routes wired to Django's own view classes (`RedirectView`, `LoginView`) anchor into the virtualenv, and `Path.relative_to(project_root)` silently produces an **absolute local path** when the venv is a symlink (exactly how generation worktrees get set up) — or a Python-version-dependent `.venv/lib/python3.13/...` path otherwise. Both violate the determinism rule and leak machine layout into committed guides. Normalize any source under `site-packages` to a stable `site-packages/...` anchor. (Observed: absolute `/Users/...` paths shipped in a committed guide and only surfaced when a regen on a different checkout produced a diff.)
+15. **Walkers must derive their file sets from the declared `[surface]` — never independent tree walks.** Observed across two production toolsets: the regen symbol index, `services`, `jobs`, `events`, and `impact` each ran their own `rglob` over `apps/` (plus the project package and `tests/`) while `[surface]` declared only depth-2 globs and excluded tests — so edits to management commands (20 files sat in the gap on one runtime, including the jobs-worker entrypoint), app tests, or `celery.py`-style modules changed answers without ever tripping the exit-2 staleness check (ctx-toml.md invariant 2). Same bug class as the TypeScript recipe's pitfall 13, opposite failure direction: nothing wrong in the output, everything wrong in the trust model. Fix structurally: one public `surface_files()` helper in `_lib` as the single source of truth, each walker filtering it down to its consumer-side scope (e.g. apps-only, no tests) instead of walking on its own. Verify output preservation by diffing rebuilt caches against a pre-fix baseline (byte-identical expected), and demonstrate closure by editing a deep file and expecting `regen --check` exit 2.
 
 ## 6. Golden questions to include (adversarial set)
 
@@ -102,6 +103,7 @@ Beyond the easy/specific ones, Django's lying-static-analysis spots:
 - `not_contains`: a model that exists only in `migrations/` history (deleted model) must NOT appear in `ctx schema`.
 - An `impact` question whose expected importer uses `from pkg import module as alias` — pins pitfall 12.
 - A `find --kind symbol` question for a helper function in a module no other kind covers, and one for a `ClassName.method` — pins pitfall 13.
+- A `find --kind symbol` question for a `Command.handle` in a depth-4 `management/commands/` file — pins that surface-derived walkers keep indexing deep app code (pitfall 15).
 
 Author the questions as carefully as the tools — **the protocol catches question bugs too**. Observed: a question asserting `contains_line: "activate"` passed against output containing `/deactivate/` (substring match). For verb-like terms, anchor the assertion (full path segment, `path:line`, or a regex with boundaries) and consider a `not_contains` pinning the near-miss sibling.
 
