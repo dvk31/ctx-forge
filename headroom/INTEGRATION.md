@@ -45,7 +45,7 @@ Key behavioral differences from lean-ctx, to call out in the PR:
 
 - **No download.** ctx-forge toolsets are generated into the repo by an agent skill; absence is reported with a pointer, never auto-installed (generation requires an agent, not a curl).
 - **Per-repo, not per-user.** lean-ctx `init` writes home-scoped agent config; ctx-forge detection is repo-scoped (`.ctx/` walk-up from cwd). Wrapping in a repo without a toolset degrades gracefully to plain proxy compression.
-- **Trust surface.** The manifest's `last_selftest_result` gates the guidance tone: an untrusted toolset still surfaces, but with an explicit warning telling the agent to prefer raw exploration.
+- **Trust surface.** The recorded selftest verdict gates the guidance tone: an untrusted toolset still surfaces, but with an explicit warning telling the agent to prefer raw exploration. The verdict lives in the gitignored `.ctx/cache/state.json` (so a fresh checkout reads as `never`/untrusted until one `ctx regen`); the manifest's `[verify].last_selftest_result` is honored as a legacy fallback for pre-state-file toolsets.
 
 3. Tests: mirror `tests/test_lean_ctx_installer.py` shape — fixture repo with a minimal `ctx.toml`, assert detection, trust gating, guidance content, and `_selected_context_tool()` acceptance of the three spellings.
 

@@ -10,7 +10,10 @@ generated *into the target repo* by the ctx-forge skill and lives under
 ``.ctx/``. Headroom's job is therefore detection + guidance, not installation:
 
 1. find the repo's ``.ctx/ctx.toml`` (walk up from cwd),
-2. confirm the toolset is trusted (last selftest passed),
+2. confirm the toolset is trusted (last selftest passed) — volatile run state
+   lives in the gitignored ``.ctx/cache/state.json`` (ctx-toml.md "Volatile
+   state"); pre-0.1 toolsets kept it in the manifest's ``[verify]`` section,
+   which is read as a legacy fallback,
 3. produce the short guidance block wrap.py injects into agent marker files
    (``.clinerules``, ``.goosehints``, CLAUDE.md fences, ...) instead of the
    rtk guidance.
@@ -18,6 +21,7 @@ generated *into the target repo* by the ctx-forge skill and lives under
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -91,8 +95,27 @@ def _parse_manifest(repo_root: Path, manifest_path: Path) -> CtxToolset | None:
         contract_version=str(ctx_section.get("contract_version", "unknown")),
         conformance=str(ctx_section.get("conformance", "unknown")),
         commands=commands,
-        selftest_result=str(verify_section.get("last_selftest_result", "never")),
+        selftest_result=_selftest_result(repo_root, verify_section),
     )
+
+
+def _selftest_result(repo_root: Path, verify_section: dict) -> str:
+    """Selftest verdict from the volatile state file, manifest as fallback.
+
+    ``ctx regen``/``ctx selftest`` record results in the gitignored
+    ``.ctx/cache/state.json`` — absent in a fresh checkout, which is
+    correctly reported as ``never`` (untrusted until one regen runs).
+    Pre-state-file toolsets wrote ``last_selftest_result`` into the
+    manifest's ``[verify]`` section; honor it when no state file exists.
+    """
+    state_path = repo_root / CTX_DIR_NAME / "cache" / "state.json"
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        state = None
+    if isinstance(state, dict) and "last_selftest_result" in state:
+        return str(state["last_selftest_result"])
+    return str(verify_section.get("last_selftest_result", "never"))
 
 
 def guidance_text(toolset: CtxToolset) -> str:
