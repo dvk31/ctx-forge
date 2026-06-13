@@ -106,7 +106,7 @@ Every toolset ships `golden.yaml`: a set of questions with ground-truth answers 
 
 ## 7. MCP exposure
 
-When the MCP server (from `mcp-template/`) is installed, it MUST expose each installed command as an MCP tool named `ctx_<command>` (e.g. `ctx_flow`), passing flags through verbatim and returning the command's stdout. The MCP layer is a thin shell — it MUST NOT add behavior beyond transport.
+When the MCP server (from `mcp-template/`) is installed, it MUST expose each installed command as an MCP tool named `ctx_<command>` (e.g. `ctx_flow`), passing flags through verbatim and returning the command's stdout. It MUST also expose the `regen` lifecycle verb as `ctx_regen`, so the exit-2 staleness guidance is actionable for agents whose only access is MCP transport. The MCP layer is a thin shell — every tool, `ctx_regen` included, shells out to the same `ctx` entrypoint and MUST NOT add behavior beyond transport.
 
 ## 8. Conformance levels
 

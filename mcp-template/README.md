@@ -38,8 +38,9 @@ claude mcp add ctx -- node /path/to/ctx-forge-mcp/dist/index.js
 ## Behavior
 
 - Each tool takes one optional `args: string[]` passed verbatim to the CLI (`["--json"]`, `["--locate"]`, `["--find", "webhook"]`).
-- Exit 2 (stale) -> output is returned prefixed with a `[STALE: ... run ctx regen]` banner.
-- Non-zero exit -> MCP error result carrying stderr.
-- If `ctx.toml` records a failed selftest, the server warns on startup that the toolset is untrusted.
+- Exit 2 (stale) -> output is returned prefixed with a `[STALE: ... call the ctx_regen tool]` banner.
+- `ctx_regen` is always registered (the lifecycle verb is not a `[commands]` entry): it rebuilds indexes + guides and re-runs selftest, so an MCP-only agent can recover from staleness without shell access. `["--check"]` probes without rebuilding. Regen writes only gitignored cache state — never the committed tree.
+- Non-zero exit -> MCP error result carrying stderr (for `ctx_regen`, exit 3 carries the per-question selftest failures: the toolset is untrusted until fixed).
+- If the state file records a failed selftest, the server warns on startup that the toolset is untrusted.
 
 The tool list is driven entirely by the manifest: regenerating the toolset and restarting the server is all it takes to pick up new commands.

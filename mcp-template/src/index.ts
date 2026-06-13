@@ -3,8 +3,9 @@
  * ctx-forge MCP server.
  *
  * Thin by contract (tool-contract.md §7): reads .ctx/ctx.toml, registers one
- * MCP tool per installed command as `ctx_<name>`, and shells out to the
- * generated `ctx` entrypoint. No behavior beyond transport.
+ * MCP tool per installed command as `ctx_<name>` plus the `ctx_regen`
+ * lifecycle verb (so exit-2 staleness is recoverable in-band), and shells out
+ * to the generated `ctx` entrypoint. No behavior beyond transport.
  */
 
 import { execFile } from "node:child_process";
@@ -146,13 +147,14 @@ async function main(): Promise<void> {
         const { stdout, stderr, code } = await runCtx(repoRoot, name, args ?? []);
 
         if (code === 2) {
-          // Contract §4: stale toolset. Surface the answer plus the fix.
+          // Contract §4: stale toolset. Surface the answer plus the fix —
+          // actionable in-band, since ctx_regen is registered below.
           return {
             content: [
               {
                 type: "text" as const,
                 text:
-                  `[STALE: toolset index is out of date — run \`ctx regen\`]\n\n` +
+                  `[STALE: toolset index is out of date — call the ctx_regen tool]\n\n` +
                   stdout,
               },
             ],
@@ -170,6 +172,58 @@ async function main(): Promise<void> {
           };
         }
         return { content: [{ type: "text" as const, text: stdout }] };
+      }
+    );
+  }
+
+  // The recovery verb, registered unconditionally (it is a lifecycle command,
+  // never a [commands] entry): exit-2 staleness guidance must be actionable
+  // over MCP transport alone (tool-contract.md §7). Still pure transport —
+  // it shells out to the same entrypoint as every other tool.
+  if (!("regen" in commands)) {
+    server.registerTool(
+      "ctx_regen",
+      {
+        description:
+          "Rebuild the toolset's indexes and guides, then re-run selftest. " +
+          "Call when another ctx tool reports [STALE]. Writes only gitignored " +
+          "cache state. Cold start may be slow (boots the framework). " +
+          'Pass ["--check"] to probe staleness without rebuilding.',
+        inputSchema: {
+          args: z
+            .array(z.string())
+            .optional()
+            .describe('Optional flags: ["--check"] probes staleness only'),
+        },
+      },
+      async ({ args }) => {
+        const { stdout, stderr, code } = await runCtx(repoRoot, "regen", args ?? []);
+
+        if (code === 2) {
+          // Only `--check` exits 2; its verdict goes to stderr.
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `[STALE]\n${(stdout || stderr).trim()}`,
+              },
+            ],
+          };
+        }
+        if (code !== 0) {
+          // exit 3 = selftest failed and the toolset is untrusted; surface
+          // the per-question FAIL lines (stdout) plus diagnostics (stderr).
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text" as const,
+                text: `ctx regen exited ${code}\n${stdout}\n${stderr}`.trim(),
+              },
+            ],
+          };
+        }
+        return { content: [{ type: "text" as const, text: stdout.trim() }] };
       }
     );
   }
