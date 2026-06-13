@@ -139,6 +139,8 @@ The skill has since been run on a **second app in the same monorepo** (the tenan
 
 A **third toolset — and the first non-Django one** — validated the TypeScript recipe: an umbrella over a five-package pnpm workspace (CLI, zod schema compiler, MCP server, two auth SDKs), written as plain Node ESM against the workspace's own pinned compiler. 20/20 golden questions on the first regen, with the adversarial set doing its job by design: barrel re-exports anchored to defining files via `getAliasedSymbol`, a same-name dispatch look-alike pinned out by `not_contains`, and zod validators surfaced as the runtime-validated data layer. The run also falsified one pre-validation recipe claim — `ts.resolveModuleName` follows `package.json` `exports` into `dist/` build output, so workspace import edges must map through the workspace name map instead — now corrected in the recipe.
 
+A **fourth toolset** hardened the surface-scoping playbook against a new trap: a Django service whose `apps/` tree carries 6 active apps plus ~16 copied, *inactive* app dirs from a sibling service (the filesystem lies; INSTALLED_APPS is the project). 29/29 golden questions including pins that a symbol existing only in the dead copies returns "no matches", built surface-derived from day one — plus two structural locks now in the recipe (pitfall 16): `regen` fails loudly when the declared surface drifts from live INSTALLED_APPS, and `impact` *refuses* out-of-surface targets instead of reporting a confident "0 importers" over files the staleness hash ignores. The verification protocol logged its third question-bug catch: a golden pinned a decorated class to its `class` line where `inspect` correctly anchors the decorator line — fixed in the matcher, post-mortem recorded in `derived_from`. One stack-specific command (`tasks`: Celery task name -> handler -> `.delay()` enqueue sites) replaced the runtime's `jobs`/`events` pair; a tempting `content` command was audited and honestly dropped into `[dropped]` — its seam was code patterns, not a registry.
+
 ## Benchmarks
 
 Same five navigation questions, same codebase (the Django 6 platform above), measured: ctx answer size vs. the bytes raw exploration pulls into an agent's context. Tokens approximated at 4 bytes/token.
@@ -210,6 +212,7 @@ ctx-forge distills a production-proven internal suite: 30+ `show_*_flow` / `ask_
 - [x] Proven end-to-end on a real Django 6 app (19/19 golden questions)
 - [x] Second toolset in the same monorepo (tenant runtime, stack-specific `jobs`/`events`, 25/25)
 - [x] TypeScript/Node recipe (validated: 5-package pnpm workspace, 8 commands, 20/20 first regen)
+- [x] Fourth toolset: Django app with inactive copied app trees (active-apps surface scoping, INSTALLED_APPS drift guard, `impact` out-of-surface refusal, 29/29)
 - [x] Volatile state (`surface hash`, selftest stamps) moved out of the tracked manifest into gitignored `cache/state.json` — routine `regen`/`selftest` runs no longer dirty the host checkout
 - [ ] Upstream the Headroom PR — opened: [chopratejas/headroom#939](https://github.com/chopratejas/headroom/pull/939), in review
 - [ ] Ship a committed `examples/` generated toolset
